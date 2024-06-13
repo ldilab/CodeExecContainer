@@ -26,7 +26,7 @@ def run_code_in_docker(
             f"{timeout}s",
             "bash",
             "-c",
-            f'echo "{stdin}" | python3 /code.{ext}',
+            f"echo /stdin.in | python3 /code.py",
         ]
     elif lang == "c":
         raise NotImplementedError("C is not supported yet")
@@ -48,6 +48,11 @@ def run_code_in_docker(
     with open(code_file, "w") as f:
         f.write(code)
 
+    # save stdin to a tmp file
+    stdin_file = f"/tmp/{code_id}.in"
+    with open(stdin_file, "w") as f:
+        f.write(stdin)
+
     container_name = f"CodeExecContainer_{code_id}"
     try:
         worker_id = os.getenv("GUNICORN_WORKER_ID", "0")
@@ -65,7 +70,10 @@ def run_code_in_docker(
             remove=True,
             # cpuset_cpus=cpuset_cpus,  # need cgroup support
             mem_limit=mem_limit,
-            volumes={code_file: {"bind": f"/code.{ext}", "mode": "ro"}},
+            volumes={
+                code_file: {"bind": f"/code.{ext}", "mode": "ro"},
+                stdin_file: {"bind": "/stdin.in", "mode": "ro"},
+            },
         )
 
         os.remove(code_file)
