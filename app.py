@@ -77,13 +77,16 @@ def run_code_in_docker(
         )
 
         os.remove(code_file)
+        os.remove(stdin_file)
         return response.decode("utf-8")
 
     except docker.errors.ContainerError as e:
         os.remove(code_file)
+        os.remove(stdin_file)
         return e.stderr.decode("utf-8")
     except Exception as e:
         os.remove(code_file)
+        os.remove(stdin_file)
         return str(e)
 
 
