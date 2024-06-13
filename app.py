@@ -9,8 +9,8 @@ client = docker.from_env()
 
 
 def run_code_in_docker(
-    lang: str,
     code: str,
+    lang: str = "python",
     stdin: str = "",
     version: str = None,
     mem_limit: str = "128m",
@@ -27,6 +27,8 @@ def run_code_in_docker(
             "bash",
             "-c",
             f"echo /stdin.in | python3 /code.py",
+            "&&",
+            "echo 'Code executed successfully'",
         ]
     elif lang == "c":
         raise NotImplementedError("C is not supported yet")
@@ -92,13 +94,13 @@ def run_code_in_docker(
 
 @app.route("/execute", methods=["POST"])
 def execute():
-    lang = request.form["lang"]
-    version = request.form.get("version", None)
-    code = request.form["code"]
-    stdin = request.form.get("stdin", "")
-    mem_limit = request.form.get("mem_limit", "128m")
-    cpu_limit = request.form.get("cpu_limit", 1)
-    timeout = request.form.get("timeout", 5)
+    lang = request.json.get("lang", "python")
+    version = request.json.get("version", None)
+    code = request.json["code"]
+    stdin = request.json.get("stdin", "")
+    mem_limit = request.json.get("mem_limit", "128m")
+    cpu_limit = request.json.get("cpu_limit", 1)
+    timeout = request.json.get("timeout", 5)
 
     try:
         response = run_code_in_docker(
@@ -120,4 +122,4 @@ def execute():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=5097)
