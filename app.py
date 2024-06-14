@@ -21,15 +21,7 @@ def run_code_in_docker(
     if lang == "python":
         image = f"python:{version or 3.9}-slim"
         ext = "py"
-        command = [
-            "timeout",
-            f"{timeout}s",
-            "bash",
-            "-c",
-            f"echo /stdin.in | python3 /code.py",
-            "&&",
-            "echo 'Code executed successfully'",
-        ]
+        command = f"/bin/sh -c \"timeout {timeout}s /bin/sh -c 'python3 code.{ext} < /stdin.in'\ || echo 'Timeout Error'\""
     elif lang == "c":
         raise NotImplementedError("C is not supported yet")
     elif lang == "cpp":
@@ -57,10 +49,10 @@ def run_code_in_docker(
 
     container_name = f"CodeExecContainer_{code_id}"
     try:
-        worker_id = os.getenv("GUNICORN_WORKER_ID", "0")
-        cpu_start = int(worker_id) * cpu_limit
-        cpu_end = cpu_start + cpu_limit - 1
-        cpuset_cpus = f"{cpu_start}-{cpu_end}" if cpu_limit > 1 else f"{cpu_start}"
+        # worker_id = os.getenv("GUNICORN_WORKER_ID", "0")
+        # cpu_start = int(worker_id) * cpu_limit
+        # cpu_end = cpu_start + cpu_limit - 1
+        # cpuset_cpus = f"{cpu_start}-{cpu_end}" if cpu_limit > 1 else f"{cpu_start}"
 
         response = client.containers.run(
             image,
