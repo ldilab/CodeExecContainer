@@ -21,7 +21,7 @@ def run_code_in_docker(
     if lang == "python":
         image = f"python:{version or 3.9}-slim"
         ext = "py"
-        command = f"/bin/sh -c \"timeout {timeout}s /bin/sh -c 'python3 code.{ext} < /stdin.in'\ || echo 'Timeout Error'\""
+        command = f"/bin/sh -c \"timeout {timeout}s /bin/sh -c 'python3 code.{ext} < /stdin.in; echo Exit Code: $?;' || echo 'Timeout Error'\""
     elif lang == "c":
         raise NotImplementedError("C is not supported yet")
     elif lang == "cpp":
