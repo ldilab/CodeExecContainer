@@ -8,7 +8,7 @@ app = Flask(__name__)
 client = docker.from_env()
 
 
-def run_code_in_docker(
+def _execute(
     code: str,
     lang: str = "python",
     stdin: str = "",
@@ -16,12 +16,17 @@ def run_code_in_docker(
     mem_limit: str = "128m",
     cpu_limit: int = 1,  # need cgroup support
     timeout: int = 5,
+    trace: bool = False,
+    **kwargs,
 ):
     code_id = uuid.uuid4()
     if lang == "python":
         image = f"python:{version or 3.9}-slim"
         ext = "py"
-        command = f"/bin/sh -c \"timeout {timeout}s /bin/sh -c 'python3 code.{ext} < /stdin.in; echo Exit Code: $?;' || echo 'Timeout Error'\""
+        if trace:
+            command = f"/bin/sh -c \"timeout {timeout}s /bin/sh -c 'python3 -m trace --trace code.{ext} < /stdin.in; echo Exit Code: $?;' || echo 'Timeout Error'\""
+        else:
+            command = f"/bin/sh -c \"timeout {timeout}s /bin/sh -c 'python3 code.{ext} < /stdin.in; echo Exit Code: $?;' || echo 'Timeout Error'\""
     elif lang == "c":
         raise NotImplementedError("C is not supported yet")
     elif lang == "cpp":
@@ -86,26 +91,8 @@ def run_code_in_docker(
 
 @app.route("/execute", methods=["POST"])
 def execute():
-    lang = request.json.get("lang", "python")
-    version = request.json.get("version", None)
-    code = request.json["code"]
-    stdin = request.json.get("stdin", "")
-    mem_limit = request.json.get("mem_limit", "128m")
-    cpu_limit = request.json.get("cpu_limit", 1)
-    timeout = request.json.get("timeout", 5)
-
     try:
-        response = run_code_in_docker(
-            lang=lang,
-            version=version,
-            code=code,
-            stdin=stdin,
-            mem_limit=mem_limit,
-            cpu_limit=cpu_limit,
-            timeout=timeout,
-        )
-
-        return {"output": response}
+        return {"output": _execute(**request.json)}
 
     except ValueError as e:
         return {"error": str(e)}, 400
