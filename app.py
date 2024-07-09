@@ -21,7 +21,7 @@ def _execute(
 ):
     code_id = uuid.uuid4()
     if lang == "python":
-        image = f"python:{version or 3.9}-slim"
+        image = f"custom-python:{version or 3.9}-slim"
         ext = "py"
         if trace:
             command = f"/bin/sh -c \"timeout {timeout}s /bin/sh -c 'python3 -m trace --trace code.{ext} < /stdin.in; echo Exit Code: $?;' || echo 'Timeout Error'\""
@@ -93,7 +93,6 @@ def _execute(
 def execute():
     try:
         return {"output": _execute(**request.json)}
-
     except ValueError as e:
         return {"error": str(e)}, 400
     except Exception as e:

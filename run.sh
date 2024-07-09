@@ -1,1 +1,1 @@
-gunicorn -w 16 --bind 0.0.0.0:5097 'app:app'
+gunicorn -w 36 --bind 0.0.0.0:5097 'app:app'
