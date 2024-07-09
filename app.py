@@ -24,9 +24,9 @@ def _execute(
         image = f"custom-python:{version or 3.9}-slim"
         ext = "py"
         if trace:
-            command = f"/bin/sh -c \"timeout {timeout}s /bin/sh -c 'python3 -m trace --trace code.{ext} < /stdin.in; echo Exit Code: $?;' || echo 'Timeout Error'\""
+            command = f"/bin/sh -c \"timeout {timeout}s /bin/sh -c 'python3 -u -m trace --trace /code.{ext} < /stdin.in; echo Exit Code: $?;' || echo 'Timeout Error'\""
         else:
-            command = f"/bin/sh -c \"timeout {timeout}s /bin/sh -c 'python3 code.{ext} < /stdin.in; echo Exit Code: $?;' || echo 'Timeout Error'\""
+            command = f"/bin/sh -c \"timeout {timeout}s /bin/sh -c 'python3 -u /code.{ext} < /stdin.in; echo Exit Code: $?;' || echo 'Timeout Error'\""
     elif lang == "c":
         raise NotImplementedError("C is not supported yet")
     elif lang == "cpp":
@@ -59,25 +59,29 @@ def _execute(
         # cpu_end = cpu_start + cpu_limit - 1
         # cpuset_cpus = f"{cpu_start}-{cpu_end}" if cpu_limit > 1 else f"{cpu_start}"
 
-        response = client.containers.run(
+        container = client.containers.run(
             image,
             command,
             name=container_name,
-            detach=False,
+            detach=True,
             stderr=True,
             stdout=True,
-            remove=True,
+            tty=True,
             # cpuset_cpus=cpuset_cpus,  # need cgroup support
             mem_limit=mem_limit,
             volumes={
                 code_file: {"bind": f"/code.{ext}", "mode": "ro"},
                 stdin_file: {"bind": "/stdin.in", "mode": "ro"},
             },
+            environment={"PYTHONUNBUFFERED": "1"},
         )
+        container.wait()
+        response = container.logs().decode("utf-8")
+        container.remove()
 
         os.remove(code_file)
         os.remove(stdin_file)
-        return response.decode("utf-8")
+        return response
 
     except docker.errors.ContainerError as e:
         os.remove(code_file)
