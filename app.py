@@ -6,6 +6,7 @@ from flask import Flask, request
 
 app = Flask(__name__)
 client = docker.from_env()
+logger = app.logger
 
 
 def _execute(
@@ -96,7 +97,10 @@ def _execute(
 @app.route("/execute", methods=["POST"])
 def execute():
     try:
-        return {"output": _execute(**request.json)}
+        logger.info(f"Request: {request.json}")
+        response = _execute(**request.json)
+        logger.info(f"Response: {response}")
+        return {"output": response}
     except ValueError as e:
         return {"error": str(e)}, 400
     except Exception as e:
